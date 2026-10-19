@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Dashboard Polling Penilaian</title>
+<title>Skoring Konten App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -45,13 +45,13 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
-<header><h1>Dashboard Polling Penilaian</h1><p>Input skor per peserta, langsung masuk ke spreadsheet</p></header>
+<header><h1>Dashboard Polling Penilaian</h1><p>Input skor konten all team EXATA Group</p></header>
 <main>
   <section class="card">
     <h2>Sesi penilaian</h2>
     <label>Sheet<select id="sheet"><option value="">Memuat sheet…</option></select></label>
     <div class="grid2">
-      <label>Penilai<select id="user"><option value="">Pilih user</option><option value="1">User 1</option><option value="2">User 2</option><option value="3">User 3</option></select></label>
+      <label>Penilai<select id="user"><option value="">Pilih user</option><option value="1">Irfan</option><option value="2">Agung</option><option value="3">Julian</option></select></label>
       <label>PIN<input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN user"></label>
     </div>
     <label>Divisi<select id="div" disabled>
@@ -86,7 +86,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 
 <script>
 // ====== GANTI dengan URL Web App Apps Script Anda ======
-const API = "PASTE_URL_WEB_APP_DI_SINI";
+const API = "https://script.google.com/macros/s/AKfycbzOKikfKT0wPc1biL-3aD0StlirRLYnAYEWzV-yo_FH8bmSafgP-iYeHdEmN5ht2mGH1w/exec";
 // =======================================================
 const MAX = {idea:35, design:30, kel:25};
 const FMT = {single:5, carousel:7, video:10};
