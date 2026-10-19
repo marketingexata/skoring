@@ -45,7 +45,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
-<header><h1>Skoring Konten App</h1><p>Input skor konten all tim EXATA Group</p></header>
+<header><h1>Skoring Konten App</h1><p>Input skor konten all tim Exata Group</p></header>
 <main>
   <section class="card">
     <h2>Sesi penilaian</h2>
@@ -186,6 +186,8 @@ async function send(overwrite){
   busy = true; calc(); $("submit").textContent = "Mengirim…";
   const r = rows.find(x => String(x.row) === S.row), v = vals();
   try{
+    const pg = await get({action:"ping", user:S.user, pin:S.pin});
+    if(!pg.version || pg.version < 2) throw new Error("Backend Apps Script masih versi lama (belum mendukung konten 2/3), data TIDAK dikirim. Deploy New version dulu.");
     const d = await post({sheet:S.sheet, user:S.user, pin:S.pin, row:Number(S.row), content:Number(S.content), name:r.name, idea:v.idea, design:v.design, kel:v.kel, format:v.format, overwrite:!!overwrite});
     if(!d.ok) throw new Error(d.error);
     if(d.status === "exists"){
@@ -194,7 +196,7 @@ async function send(overwrite){
       $("dlg").showModal();
     } else {
       delete S.drafts[key()]; save();
-      toast("Skor " + r.name + " (konten " + S.content + ") terkirim");
+      toast("Skor " + r.name + " (konten " + S.content + ") tersimpan di kolom " + d.cols);
       if (Number(S.content) < 3) { S.content = String(Number(S.content) + 1); }
       else { $("name").value = ""; S.row = ""; S.content = "1"; }
       save(); renderPanel();
@@ -204,7 +206,7 @@ async function send(overwrite){
 }
 
 // Restore & events
-$("user").value = S.user || ""; $("pin").value = S.pin || ""; $("div").value = S.div || "";
+$("content").value = S.content; $("user").value = S.user || ""; $("pin").value = S.pin || ""; $("div").value = S.div || "";
 $("sheet").onchange = () => { S.sheet = $("sheet").value; S.row = ""; save(); loadRows(); };
 $("user").onchange = () => { S.user = $("user").value; S.row = ""; save(); loadRows(); };
 $("pin").onchange = () => { S.pin = $("pin").value.trim(); save(); loadRows(); };
