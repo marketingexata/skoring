@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard Polling Penilaian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--teal:#2f9fae;--teal-d:#217a87;--bg:#f4f6f3;--card:#fff;--ink:#1d2b2e;--mut:#667378;--line:#d9e0dd;--ok:#2e7d4f;--err:#b3261e;--warn:#fff3cf}
+@media(prefers-color-scheme:dark){:root{--bg:#121819;--card:#1b2426;--ink:#e8efee;--mut:#9aa8ab;--line:#2f3b3e;--warn:#3d3414}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Manrope,system-ui,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+header{background:var(--teal);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 20px 18px}
+header h1{margin:0;font-size:1.25rem;font-weight:800}
+header p{margin:2px 0 0;opacity:.9;font-size:.9rem}
+main{max-width:720px;margin:0 auto;padding:16px;display:grid;gap:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+.card h2{margin:0;font-size:1rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.grid2{grid-template-columns:1fr}}
+label{display:grid;gap:4px;font-size:.85rem;font-weight:600;color:var(--mut)}
+select,input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:11px 12px;min-height:46px}
+select:focus,input:focus,button:focus-visible{outline:3px solid var(--teal);outline-offset:1px}
+select:disabled{opacity:.5}
+.score{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:end}
+.score input{text-align:center;max-width:110px}
+.score input.bad{border-color:var(--err)}
+.hint{font-size:.78rem;color:var(--mut);font-weight:400}
+.nameTag{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid var(--teal);padding-bottom:8px}
+.nameTag b{font-size:1.15rem}
+.total{display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:10px 12px;font-weight:800}
+button{font:inherit;font-weight:800;border:0;border-radius:10px;padding:13px 18px;min-height:48px;cursor:pointer;background:var(--teal);color:#fff}
+button:hover{background:var(--teal-d)}
+button.sec{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.draft{font-size:.8rem;color:var(--ok);min-height:1.2em}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;max-width:90vw;display:none;z-index:9}
+#toast.err{background:var(--err);color:#fff}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:420px;width:calc(100% - 32px);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.prev{background:var(--warn);border-radius:8px;padding:10px 12px;margin:12px 0}
+.row{display:flex;gap:10px;justify-content:flex-end}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header><h1>Dashboard Polling Penilaian</h1><p>Input skor per peserta, langsung masuk ke spreadsheet</p></header>
+<main>
+  <section class="card">
+    <h2>Sesi penilaian</h2>
+    <label>Sheet<select id="sheet"><option value="">Memuat sheet…</option></select></label>
+    <div class="grid2">
+      <label>Penilai<select id="user"><option value="">Pilih user</option><option value="1">User 1</option><option value="2">User 2</option><option value="3">User 3</option></select></label>
+      <label>PIN<input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN user"></label>
+    </div>
+    <label>Divisi<select id="div" disabled>
+      <option value="">Pilih divisi</option><option value="EXATA">EXATA</option><option value="JPSMART">JP Smart</option><option value="JX">JX</option><option value="JLCT">JLCT</option><option value="IT">IT</option>
+    </select></label>
+    <label>Nama<select id="name" disabled><option value="">Pilih divisi dulu</option></select></label>
+  </section>
+
+  <section class="card hidden" id="panel">
+    <div class="nameTag"><b id="pName"></b><span class="hint" id="pMeta"></span></div>
+    <div class="score">
+      <label for="idea">Ide <span class="hint">maks 35</span></label><input id="idea" type="number" inputmode="decimal" min="0" max="35" step="any">
+      <label for="design">Desain <span class="hint">maks 30</span></label><input id="design" type="number" inputmode="decimal" min="0" max="30" step="any">
+      <label for="kel">Kelengkapan &amp; Keselarasan <span class="hint">maks 25</span></label><input id="kel" type="number" inputmode="decimal" min="0" max="25" step="any">
+    </div>
+    <label>Format
+      <select id="format"><option value="">Pilih format</option><option value="single">Gambar single (+5)</option><option value="carousel">Carousel (+7)</option><option value="video">Video (+10)</option></select>
+    </label>
+    <div class="total"><span>Total skor</span><span id="total">0</span></div>
+    <div class="draft" id="draftMsg"></div>
+    <button id="submit" disabled>Kirim skor</button>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <b>Skor sudah pernah dikirim</b>
+  <div class="prev" id="prev"></div>
+  <p style="margin:0">Timpa dengan skor yang baru?</p>
+  <div class="row" style="margin-top:14px"><button class="sec" id="no">Batal</button><button id="yes">Timpa</button></div>
+</dialog>
+<div id="toast" role="status"></div>
+
+<script>
+// ====== GANTI dengan URL Web App Apps Script Anda ======
+const API = "PASTE_URL_WEB_APP_DI_SINI";
+// =======================================================
+const MAX = {idea:35, design:30, kel:25};
+const FMT = {single:5, carousel:7, video:10};
+const LS = "polling_v1";
+const $ = id => document.getElementById(id);
+let S = {}; try { S = JSON.parse(localStorage.getItem(LS) || "{}"); } catch(e) {}
+S.drafts = S.drafts || {};
+let rows = [], busy = false, pending = null;
+const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e) {} };
+
+function toast(msg, err){
+  const t = $("toast"); t.textContent = msg; t.className = err ? "err" : ""; t.style.display = "block";
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = "none", 3500);
+}
+async function get(params){
+  const r = await fetch(API + "?" + new URLSearchParams(params));
+  return r.json();
+}
+async function post(body){
+  const r = await fetch(API, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(body)});
+  return r.json();
+}
+function fill(el, items, ph, val){
+  el.innerHTML = "";
+  el.add(new Option(ph, ""));
+  items.forEach(i => el.add(new Option(i.label, i.value)));
+  if (val && items.some(i => i.value === val)) el.value = val;
+}
+
+async function loadSheets(){
+  try{
+    const d = await get({action:"sheets"});
+    if(!d.ok) throw new Error(d.error);
+    fill($("sheet"), d.sheets.map(s => ({label:s, value:s})), "Pilih sheet", S.sheet);
+    if ($("sheet").value) loadRows();
+  }catch(e){ fill($("sheet"), [], "Gagal memuat sheet"); toast("Tidak bisa terhubung ke spreadsheet: " + e.message, true); }
+}
+async function loadRows(){
+  const ok = $("sheet").value && $("user").value && $("pin").value;
+  $("div").disabled = !ok;
+  if(!ok){ rows = []; renderNames(); return; }
+  try{
+    const d = await get({action:"rows", sheet:S.sheet, user:S.user, pin:S.pin});
+    if(!d.ok) throw new Error(d.error);
+    rows = d.rows; renderNames();
+  }catch(e){ rows = []; renderNames(); toast(e.message, true); }
+}
+function renderNames(){
+  const dv = $("div").value;
+  const list = rows.filter(r => r.division === dv).map(r => ({label:r.name, value:String(r.row)}));
+  $("name").disabled = !dv || !list.length;
+  fill($("name"), list, dv ? (list.length ? "Pilih nama" : "Tidak ada nama") : "Pilih divisi dulu", S.row);
+  if(!$("name").value) S.row = "";
+  renderPanel();
+}
+const key = () => [S.sheet, S.user, S.row].join("|");
+function renderPanel(){
+  const r = rows.find(x => String(x.row) === $("name").value);
+  $("panel").classList.toggle("hidden", !r);
+  if(!r) return;
+  S.row = String(r.row); save();
+  $("pName").textContent = r.name;
+  $("pMeta").textContent = $("div").selectedOptions[0].text + " · User " + S.user;
+  const d = S.drafts[key()] || {};
+  ["idea","design","kel"].forEach(k => $(k).value = d[k] ?? "");
+  $("format").value = d.format || "";
+  $("draftMsg").textContent = Object.keys(d).length ? "Draf dipulihkan" : "";
+  calc();
+}
+function vals(){
+  const v = {};
+  ["idea","design","kel"].forEach(k => v[k] = $(k).value === "" ? null : Number($(k).value));
+  v.format = $("format").value;
+  return v;
+}
+function calc(){
+  const v = vals(); let valid = true, sum = 0;
+  ["idea","design","kel"].forEach(k => {
+    const bad = v[k] === null || isNaN(v[k]) || v[k] < 0 || v[k] > MAX[k];
+    $(k).classList.toggle("bad", v[k] !== null && bad);
+    if(bad) valid = false; else sum += v[k];
+  });
+  if(!v.format) valid = false; else sum += FMT[v.format];
+  $("total").textContent = Math.round(sum * 100) / 100;
+  $("submit").disabled = !valid || busy;
+}
+function saveDraft(){
+  if(!S.row) return;
+  S.drafts[key()] = vals(); save();
+  $("draftMsg").textContent = "Draf tersimpan otomatis";
+}
+
+async function send(overwrite){
+  busy = true; calc(); $("submit").textContent = "Mengirim…";
+  const r = rows.find(x => String(x.row) === S.row), v = vals();
+  try{
+    const d = await post({sheet:S.sheet, user:S.user, pin:S.pin, row:Number(S.row), name:r.name, idea:v.idea, design:v.design, kel:v.kel, format:v.format, overwrite:!!overwrite});
+    if(!d.ok) throw new Error(d.error);
+    if(d.status === "exists"){
+      const p = d.previous;
+      $("prev").innerHTML = "Skor lama: Ide <b>" + p.idea + "</b>, Desain <b>" + p.design + "</b>, Kelengkapan <b>" + p.kel + "</b>";
+      $("dlg").showModal();
+    } else {
+      delete S.drafts[key()]; save();
+      toast("Skor " + r.name + " terkirim");
+      $("name").value = ""; S.row = ""; save(); renderPanel();
+    }
+  }catch(e){ toast(e.message + " (draf tetap tersimpan)", true); }
+  busy = false; $("submit").textContent = "Kirim skor"; calc();
+}
+
+// Restore & events
+$("user").value = S.user || ""; $("pin").value = S.pin || ""; $("div").value = S.div || "";
+$("sheet").onchange = () => { S.sheet = $("sheet").value; S.row = ""; save(); loadRows(); };
+$("user").onchange = () => { S.user = $("user").value; S.row = ""; save(); loadRows(); };
+$("pin").onchange = () => { S.pin = $("pin").value.trim(); save(); loadRows(); };
+$("div").onchange = () => { S.div = $("div").value; S.row = ""; save(); renderNames(); };
+$("name").onchange = () => { S.row = $("name").value; renderPanel(); };
+["idea","design","kel"].forEach(k => $(k).oninput = () => { calc(); saveDraft(); });
+$("format").onchange = () => { calc(); saveDraft(); };
+$("submit").onclick = () => send(false);
+$("yes").onclick = () => { $("dlg").close(); send(true); };
+$("no").onclick = () => $("dlg").close();
+document.addEventListener("visibilitychange", () => { if(document.hidden) saveDraft(); });
+window.addEventListener("pagehide", saveDraft);
+if(API.startsWith("PASTE")) toast("Isi konstanta API dengan URL Web App Anda", true);
+loadSheets();
+</script>
+</body>
+</html>
