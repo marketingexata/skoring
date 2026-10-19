@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Skoring Konten App</title>
+<title>Skoring App</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -45,7 +45,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
-<header><h1>Dashboard Polling Penilaian</h1><p>Input skor konten all team EXATA Group</p></header>
+<header><h1>Skoring Konten App</h1><p>Input skor konten all tim EXATA Group</p></header>
 <main>
   <section class="card">
     <h2>Sesi penilaian</h2>
@@ -58,6 +58,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
       <option value="">Pilih divisi</option><option value="EXATA">EXATA</option><option value="JPSMART">JP Smart</option><option value="JX">JX</option><option value="JLCT">JLCT</option><option value="IT">IT</option>
     </select></label>
     <label>Nama<select id="name" disabled><option value="">Pilih divisi dulu</option></select></label>
+    <label>Konten<select id="content"><option value="1">Konten 1</option><option value="2">Konten 2</option><option value="3">Konten 3</option></select></label>
   </section>
 
   <section class="card hidden" id="panel">
@@ -94,6 +95,7 @@ const LS = "polling_v1";
 const $ = id => document.getElementById(id);
 let S = {}; try { S = JSON.parse(localStorage.getItem(LS) || "{}"); } catch(e) {}
 S.drafts = S.drafts || {};
+S.content = S.content || "1";
 let rows = [], busy = false, pending = null;
 const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e) {} };
 
@@ -142,14 +144,15 @@ function renderNames(){
   if(!$("name").value) S.row = "";
   renderPanel();
 }
-const key = () => [S.sheet, S.user, S.row].join("|");
+const key = () => [S.sheet, S.user, S.row, S.content].join("|");
 function renderPanel(){
   const r = rows.find(x => String(x.row) === $("name").value);
   $("panel").classList.toggle("hidden", !r);
   if(!r) return;
   S.row = String(r.row); save();
   $("pName").textContent = r.name;
-  $("pMeta").textContent = $("div").selectedOptions[0].text + " · User " + S.user;
+  $("content").value = S.content;
+  $("pMeta").textContent = $("div").selectedOptions[0].text + " · User " + S.user + " · Konten " + S.content;
   const d = S.drafts[key()] || {};
   ["idea","design","kel"].forEach(k => $(k).value = d[k] ?? "");
   $("format").value = d.format || "";
@@ -183,7 +186,7 @@ async function send(overwrite){
   busy = true; calc(); $("submit").textContent = "Mengirim…";
   const r = rows.find(x => String(x.row) === S.row), v = vals();
   try{
-    const d = await post({sheet:S.sheet, user:S.user, pin:S.pin, row:Number(S.row), name:r.name, idea:v.idea, design:v.design, kel:v.kel, format:v.format, overwrite:!!overwrite});
+    const d = await post({sheet:S.sheet, user:S.user, pin:S.pin, row:Number(S.row), content:Number(S.content), name:r.name, idea:v.idea, design:v.design, kel:v.kel, format:v.format, overwrite:!!overwrite});
     if(!d.ok) throw new Error(d.error);
     if(d.status === "exists"){
       const p = d.previous;
@@ -191,8 +194,10 @@ async function send(overwrite){
       $("dlg").showModal();
     } else {
       delete S.drafts[key()]; save();
-      toast("Skor " + r.name + " terkirim");
-      $("name").value = ""; S.row = ""; save(); renderPanel();
+      toast("Skor " + r.name + " (konten " + S.content + ") terkirim");
+      if (Number(S.content) < 3) { S.content = String(Number(S.content) + 1); }
+      else { $("name").value = ""; S.row = ""; S.content = "1"; }
+      save(); renderPanel();
     }
   }catch(e){ toast(e.message + " (draf tetap tersimpan)", true); }
   busy = false; $("submit").textContent = "Kirim skor"; calc();
@@ -205,6 +210,7 @@ $("user").onchange = () => { S.user = $("user").value; S.row = ""; save(); loadR
 $("pin").onchange = () => { S.pin = $("pin").value.trim(); save(); loadRows(); };
 $("div").onchange = () => { S.div = $("div").value; S.row = ""; save(); renderNames(); };
 $("name").onchange = () => { S.row = $("name").value; renderPanel(); };
+$("content").onchange = () => { S.content = $("content").value; save(); renderPanel(); };
 ["idea","design","kel"].forEach(k => $(k).oninput = () => { calc(); saveDraft(); });
 $("format").onchange = () => { calc(); saveDraft(); };
 $("submit").onclick = () => send(false);
