@@ -20,9 +20,12 @@ main{max-width:720px;margin:0 auto;padding:16px;display:grid;gap:16px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:520px){.grid2{grid-template-columns:1fr}}
 label{display:grid;gap:4px;font-size:.85rem;font-weight:600;color:var(--mut)}
-select,input{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:11px 12px;min-height:46px}
-select:focus,input:focus,button:focus-visible{outline:3px solid var(--teal);outline-offset:1px}
+select,input,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:11px 12px;min-height:46px}
+textarea{resize:vertical;min-height:64px}
+select:focus,input:focus,textarea:focus,button:focus-visible{outline:3px solid var(--teal);outline-offset:1px}
 select:disabled{opacity:.5}
+.crit{display:grid;gap:8px;padding-bottom:12px;border-bottom:1px dashed var(--line)}
+.crit:last-of-type{border-bottom:0}
 .score{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:end}
 .score input{text-align:center;max-width:110px}
 .score input.bad{border-color:var(--err)}
@@ -39,7 +42,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 #toast.err{background:var(--err);color:#fff}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:420px;width:calc(100% - 32px);padding:20px}
 dialog::backdrop{background:rgba(0,0,0,.5)}
-.prev{background:var(--warn);border-radius:8px;padding:10px 12px;margin:12px 0}
+.prev{background:var(--warn);border-radius:8px;padding:10px 12px;margin:12px 0;display:grid;gap:6px;overflow-wrap:anywhere}
+.prev i{color:var(--mut)}
 .row{display:flex;gap:10px;justify-content:flex-end}
 .hidden{display:none!important}
 </style>
@@ -63,11 +67,20 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 
   <section class="card hidden" id="panel">
     <div class="nameTag"><b id="pName"></b><span class="hint" id="pMeta"></span></div>
-    <div class="score">
-      <label for="idea">Ide <span class="hint">maks 35</span></label><input id="idea" type="number" inputmode="decimal" min="0" max="35" step="any">
-      <label for="design">Desain <span class="hint">maks 30</span></label><input id="design" type="number" inputmode="decimal" min="0" max="30" step="any">
-      <label for="kel">Kelengkapan &amp; Keselarasan <span class="hint">maks 25</span></label><input id="kel" type="number" inputmode="decimal" min="0" max="25" step="any">
+
+    <div class="crit">
+      <div class="score"><label for="idea">Ide <span class="hint">maks 35</span></label><input id="idea" type="number" inputmode="decimal" min="0" max="35" step="any"></div>
+      <textarea id="cIdea" rows="2" maxlength="500" placeholder="Komentar untuk Ide (opsional)" aria-label="Komentar Ide"></textarea>
     </div>
+    <div class="crit">
+      <div class="score"><label for="design">Desain <span class="hint">maks 30</span></label><input id="design" type="number" inputmode="decimal" min="0" max="30" step="any"></div>
+      <textarea id="cDesign" rows="2" maxlength="500" placeholder="Komentar untuk Desain (opsional)" aria-label="Komentar Desain"></textarea>
+    </div>
+    <div class="crit">
+      <div class="score"><label for="kel">Kelengkapan &amp; Keselarasan <span class="hint">maks 25</span></label><input id="kel" type="number" inputmode="decimal" min="0" max="25" step="any"></div>
+      <textarea id="cKel" rows="2" maxlength="500" placeholder="Komentar untuk Kelengkapan &amp; Keselarasan (opsional)" aria-label="Komentar Kelengkapan dan Keselarasan"></textarea>
+    </div>
+
     <label>Format
       <select id="format"><option value="">Pilih format</option><option value="single">Gambar single (+5)</option><option value="carousel">Carousel (+7)</option><option value="video">Video (+10)</option></select>
     </label>
@@ -80,7 +93,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 <dialog id="dlg">
   <b>Skor sudah pernah dikirim</b>
   <div class="prev" id="prev"></div>
-  <p style="margin:0">Timpa dengan skor yang baru?</p>
+  <p style="margin:0">Timpa dengan skor dan komentar yang baru?</p>
   <div class="row" style="margin-top:14px"><button class="sec" id="no">Batal</button><button id="yes">Timpa</button></div>
 </dialog>
 <div id="toast" role="status"></div>
@@ -91,6 +104,8 @@ const API = "https://script.google.com/macros/s/AKfycbzOKikfKT0wPc1biL-3aD0Stlir
 // =======================================================
 const MAX = {idea:35, design:30, kel:25};
 const FMT = {single:5, carousel:7, video:10};
+const CK = {idea:"cIdea", design:"cDesign", kel:"cKel"}; // id kolom komentar
+const KEYS = ["idea","design","kel"];
 const LS = "polling_v1";
 const $ = id => document.getElementById(id);
 let S = {}; try { S = JSON.parse(localStorage.getItem(LS) || "{}"); } catch(e) {}
@@ -98,6 +113,7 @@ S.drafts = S.drafts || {};
 S.content = S.content || "1";
 let rows = [], busy = false, pending = null;
 const save = () => { try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e) {} };
+const esc = s => { const d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; };
 
 function toast(msg, err){
   const t = $("toast"); t.textContent = msg; t.className = err ? "err" : ""; t.style.display = "block";
@@ -154,20 +170,20 @@ function renderPanel(){
   $("content").value = S.content;
   $("pMeta").textContent = $("div").selectedOptions[0].text + " · User " + S.user + " · Konten " + S.content;
   const d = S.drafts[key()] || {};
-  ["idea","design","kel"].forEach(k => $(k).value = d[k] ?? "");
+  KEYS.forEach(k => { $(k).value = d[k] ?? ""; $(CK[k]).value = d[CK[k]] ?? ""; });
   $("format").value = d.format || "";
   $("draftMsg").textContent = Object.keys(d).length ? "Draf dipulihkan" : "";
   calc();
 }
 function vals(){
   const v = {};
-  ["idea","design","kel"].forEach(k => v[k] = $(k).value === "" ? null : Number($(k).value));
+  KEYS.forEach(k => { v[k] = $(k).value === "" ? null : Number($(k).value); v[CK[k]] = $(CK[k]).value.trim(); });
   v.format = $("format").value;
   return v;
 }
 function calc(){
   const v = vals(); let valid = true, sum = 0;
-  ["idea","design","kel"].forEach(k => {
+  KEYS.forEach(k => {
     const bad = v[k] === null || isNaN(v[k]) || v[k] < 0 || v[k] > MAX[k];
     $(k).classList.toggle("bad", v[k] !== null && bad);
     if(bad) valid = false; else sum += v[k];
@@ -182,18 +198,22 @@ function saveDraft(){
   $("draftMsg").textContent = "Draf tersimpan otomatis";
 }
 
+function showPrev(p){
+  const line = (label, k) => "<div>" + label + " <b>" + esc(p[k]) + "</b>" + (p["c" + k] ? "<br><i>“" + esc(p["c" + k]) + "”</i>" : "") + "</div>";
+  $("prev").innerHTML = line("Ide", "idea") + line("Desain", "design") + line("Kelengkapan", "kel");
+  $("dlg").showModal();
+}
+
 async function send(overwrite){
   busy = true; calc(); $("submit").textContent = "Mengirim…";
   const r = rows.find(x => String(x.row) === S.row), v = vals();
   try{
     const pg = await get({action:"ping", user:S.user, pin:S.pin});
-    if(!pg.version || pg.version < 2) throw new Error("Backend Apps Script masih versi lama (belum mendukung konten 2/3), data TIDAK dikirim. Deploy New version dulu.");
-    const d = await post({sheet:S.sheet, user:S.user, pin:S.pin, row:Number(S.row), content:Number(S.content), name:r.name, idea:v.idea, design:v.design, kel:v.kel, format:v.format, overwrite:!!overwrite});
+    if(!pg.version || pg.version < 3) throw new Error("Backend Apps Script masih versi lama (belum mendukung komentar), data TIDAK dikirim. Deploy New version dulu.");
+    const d = await post({sheet:S.sheet, user:S.user, pin:S.pin, row:Number(S.row), content:Number(S.content), name:r.name, idea:v.idea, design:v.design, kel:v.kel, cIdea:v.cIdea, cDesign:v.cDesign, cKel:v.cKel, format:v.format, overwrite:!!overwrite});
     if(!d.ok) throw new Error(d.error);
     if(d.status === "exists"){
-      const p = d.previous;
-      $("prev").innerHTML = "Skor lama: Ide <b>" + p.idea + "</b>, Desain <b>" + p.design + "</b>, Kelengkapan <b>" + p.kel + "</b>";
-      $("dlg").showModal();
+      showPrev(d.previous);
     } else {
       delete S.drafts[key()]; save();
       toast("Skor " + r.name + " (konten " + S.content + ") tersimpan di kolom " + d.cols);
@@ -213,7 +233,7 @@ $("pin").onchange = () => { S.pin = $("pin").value.trim(); save(); loadRows(); }
 $("div").onchange = () => { S.div = $("div").value; S.row = ""; save(); renderNames(); };
 $("name").onchange = () => { S.row = $("name").value; renderPanel(); };
 $("content").onchange = () => { S.content = $("content").value; save(); renderPanel(); };
-["idea","design","kel"].forEach(k => $(k).oninput = () => { calc(); saveDraft(); });
+KEYS.forEach(k => { $(k).oninput = () => { calc(); saveDraft(); }; $(CK[k]).oninput = saveDraft; });
 $("format").onchange = () => { calc(); saveDraft(); };
 $("submit").onclick = () => send(false);
 $("yes").onclick = () => { $("dlg").close(); send(true); };
